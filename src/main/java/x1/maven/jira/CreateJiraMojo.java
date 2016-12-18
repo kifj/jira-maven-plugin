@@ -1,5 +1,6 @@
 package x1.maven.jira;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -25,7 +26,8 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 
 /**
- * Create JIRA tickets for deployment with different templates according to the stage
+ * Create JIRA tickets for deployment with different templates according to the
+ * stage
  * 
  * @author joe
  */
@@ -229,10 +231,19 @@ public class CreateJiraMojo extends AbstractMojo {
 
   private String fillTemplate(String stage, String template, Map<String, Object> variables) throws IOException {
     VelocityEngine ve = new VelocityEngine();
-    ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-    ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+
+    File f = new File(template);
+    getLog().debug("Checking file " + f + " -> " + f.exists());
+    String resource;
+    if (f.exists()) {
+      ve.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, f.getParentFile().getAbsolutePath());
+      resource = f.getName();
+    } else {
+      ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
+      ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+      resource = (stage != null) ? stage + "/" + template : template;
+    }
     ve.init();
-    String resource = (stage != null) ? stage + "/" + template : template;
     Template t = ve.getTemplate(resource);
     VelocityContext context = new VelocityContext();
     for (Map.Entry<String, Object> entry : variables.entrySet()) {
@@ -245,15 +256,17 @@ public class CreateJiraMojo extends AbstractMojo {
 
   private String getArtifactoryUrl(String groupId, String artifactId, String version, String type) {
     String artifactoryServer = "http://localhost";
-    //TODO fix artifactory URL resolution for SNAPSHOTs 
-    //when version contains SNAPSHOT the server will return the latest SNAPSHOT (Artifactory) or 404 (Nexus)
-    //when version is a dedicated SNAPSHOT (as in stomp-test-1.4.0-20161002.090310-15.war) we would query the
-    //release profile.
+    // TODO fix artifactory URL resolution for SNAPSHOTs
+    // when version contains SNAPSHOT the server will return the latest SNAPSHOT
+    // (Artifactory) or 404 (Nexus)
+    // when version is a dedicated SNAPSHOT (as in
+    // stomp-test-1.4.0-20161002.090310-15.war) we would query the
+    // release profile.
     boolean isSnapshot = version.contains("-SNAPSHOT");
     String id = (isSnapshot ? snapshotRepository : repository);
-    
+
     getLog().debug("Looking for repository " + id + " in profiles " + settings.getActiveProfiles());
-    
+
     for (String profile : settings.getActiveProfiles()) {
       Profile p = settings.getProfilesAsMap().get(profile);
       if (p != null) {
@@ -264,7 +277,7 @@ public class CreateJiraMojo extends AbstractMojo {
         }
       }
     }
-    
+
     return artifactoryServer + "/" + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId
         + "-" + version + "." + type;
   }
@@ -296,14 +309,17 @@ public class CreateJiraMojo extends AbstractMojo {
 
   private void loadJiraServer(String id) {
     Server server = settings.getServer(id);
-    getLog().debug("Found server " + id + " in settings");
     if (server != null) {
+      getLog().debug("Found server " + id + " in settings: username=" + server.getUsername() + ", password="
+          + server.getPassword());
       if (jiraUserName == null) {
         jiraUserName = server.getUsername();
       }
       if (jiraPassword == null) {
         jiraPassword = server.getPassword();
       }
+    } else {
+      getLog().debug("Could not find server " + id + " in settings");
     }
   }
 }
