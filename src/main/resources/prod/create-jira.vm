@@ -1,0 +1,39 @@
+{
+    "fields": {
+        "project": {
+            "key": "$project"
+        },
+        "issuetype": {
+            "name": "Deployment"
+        },
+        "summary": "$title",
+        "description": "*&Auml;nderungen:*\n-\n*Voraussetzungen:*\n-\n*Deployment:*\n|| Artifactory URL || Name || Server || Slot || Folder || Action ||\n#foreach( $deployment in $deployments )| $!deployment.artifactoryUrl | $!deployment.name | $!deployment.servers | $!deployment.slot | $!deployment.folder | $!deployment.action |\n#end\n",
+        "environment": "$stage",
+#if( $assignee)
+        "assignee": {
+            "name": "$assignee"
+        },
+#end
+#if( $reporter)
+        "reporter": {
+            "name": "$reporter"
+        },
+#end
+#if( $approver)
+        "approver": {
+            "name": "$approver"
+        },
+#end
+#if( $duedate)
+        "duedate": "$duedate",
+#end
+#if( $component) 
+		"components": [
+            {
+                "key": "$component"
+            }
+        ],
+#end
+        "labels": [ #foreach( $label in $labels )"$label"#if( $foreach.hasNext ),#end #end]
+    }
+}

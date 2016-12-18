@@ -1,0 +1,11 @@
+{
+    "type": {
+        "name": "Relates"
+    },
+    "inwardIssue": {
+        "key": "$link"
+    },
+    "outwardIssue": {
+        "key": "$id"
+    }
+}
